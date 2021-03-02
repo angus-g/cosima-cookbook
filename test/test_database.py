@@ -55,11 +55,11 @@ def test_creation(session_db):
 
     # we should be able to query against a table that exists
     # with no error
-    s.execute("SELECT * FROM ncfiles")
+    s.execute("SELECT * FROM ncfiles", mapper=database.models.NCFile)
 
     # but not a non-existent table
     with pytest.raises(sa.exc.OperationalError, match="no such table"):
-        s.execute("SELECT * FROM ncfiles_notfound")
+        s.execute("SELECT * FROM ncfiles_notfound", mapper=database.models.NCFile)
 
 
 def test_reopen(tmpdir):
@@ -80,11 +80,16 @@ def test_outdated(tmpdir):
     s = database.create_session(str(db))
 
     # check that the current version matches that defined in the module
-    ver = s.execute("PRAGMA user_version").fetchone()[0]
+    ver = s.execute(
+        "PRAGMA user_version", mapper=database.models.NCExperiment
+    ).fetchone()[0]
     assert ver == database.database.__DB_VERSION__
 
     # reset version to one prior
-    s.execute("PRAGMA user_version={}".format(database.database.__DB_VERSION__ - 1))
+    s.execute(
+        "PRAGMA user_version={}".format(database.database.__DB_VERSION__ - 1),
+        mapper=database.models.NCExperiment,
+    )
     s.close()
 
     # recreate the session
@@ -101,7 +106,10 @@ def test_outdated_notmodified(tmpdir):
     # set up an empty database with a previous version
     db = tmpdir.join("test.db")
     conn = sa.create_engine("sqlite:///" + str(db)).connect()
-    conn.execute("PRAGMA user_version={}".format(database.database.__DB_VERSION__ - 1))
+    conn.execute(
+        "PRAGMA user_version={}".format(database.database.__DB_VERSION__ - 1),
+        mapper=database.models.NCExperiment,
+    )
     conn.close()
 
     # try to create the session
@@ -112,7 +120,7 @@ def test_outdated_notmodified(tmpdir):
     # reopen the connection and ensure tables weren't created
     conn = sa.create_engine("sqlite:///" + str(db)).connect()
     with pytest.raises(sa.exc.OperationalError, match="no such table"):
-        conn.execute("SELECT * FROM ncfiles")
+        conn.execute("SELECT * FROM ncfiles", mapper=database.models.NCFile)
 
 
 def test_delete_experiment(session_db):

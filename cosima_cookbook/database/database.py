@@ -14,6 +14,7 @@ import yaml
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from . import stats
 from .. import netcdf_utils
 from .models import *
 from ..date_utils import format_datetime
@@ -48,10 +49,21 @@ def create_session(db=None, debug=False):
             )
         )
 
+    stats_path = stats.lookup_stats_database(conn)
+
     Base.metadata.create_all(conn)
     conn.close()
 
-    Session = sessionmaker(bind=engine)
+    binds = {Base: engine}
+
+    if not stats_path is None:
+        stats_engine = create_engine("sqlite:///" + stats_path, echo=debug)
+        # ensure the schema is there
+        stats.StatsBase.metadata.create_all(stats_engine)
+        binds[stats.StatsBase] = stats_engine
+
+    Session = sessionmaker()
+    Session.configure(binds=binds)
     return Session()
 
 
