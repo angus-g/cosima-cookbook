@@ -22,7 +22,7 @@ def db_env(tmpdir):
 def test_default(tmpdir):
     db = tmpdir.join("test.db")
     # override the NCI-specific default
-    database.__DEFAULT_DB__ = str(db)
+    database.database.__DEFAULT_DB__ = str(db)
 
     s = database.create_session()
 
@@ -81,10 +81,10 @@ def test_outdated(tmpdir):
 
     # check that the current version matches that defined in the module
     ver = s.execute("PRAGMA user_version").fetchone()[0]
-    assert ver == database.__DB_VERSION__
+    assert ver == database.database.__DB_VERSION__
 
     # reset version to one prior
-    s.execute("PRAGMA user_version={}".format(database.__DB_VERSION__ - 1))
+    s.execute("PRAGMA user_version={}".format(database.database.__DB_VERSION__ - 1))
     s.close()
 
     # recreate the session
@@ -101,7 +101,7 @@ def test_outdated_notmodified(tmpdir):
     # set up an empty database with a previous version
     db = tmpdir.join("test.db")
     conn = sa.create_engine("sqlite:///" + str(db)).connect()
-    conn.execute("PRAGMA user_version={}".format(database.__DB_VERSION__ - 1))
+    conn.execute("PRAGMA user_version={}".format(database.database.__DB_VERSION__ - 1))
     conn.close()
 
     # try to create the session
