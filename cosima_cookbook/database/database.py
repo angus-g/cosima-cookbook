@@ -52,18 +52,14 @@ def create_session(db=None, debug=False):
     stats_path = stats.lookup_stats_database(conn)
 
     Base.metadata.create_all(conn)
-    conn.close()
-
-    binds = {Base: engine}
 
     if not stats_path is None:
-        stats_engine = create_engine("sqlite:///" + stats_path, echo=debug)
+        conn.execute("ATTACH DATABASE ? AS stats_db", stats_path)
         # ensure the schema is there
-        stats.StatsBase.metadata.create_all(stats_engine)
-        binds[stats.StatsBase] = stats_engine
+        stats.StatsBase.metadata.create_all(conn)
 
     Session = sessionmaker()
-    Session.configure(binds=binds)
+    Session.configure(bind=conn)
     return Session()
 
 
